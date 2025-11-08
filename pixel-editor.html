@@ -1,0 +1,1717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>LED Pixel Editor</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="16x16 Pixel Art Editor for WLED Matrix">
+    <meta name="theme-color" content="#007bff">
+    
+    <!-- iOS Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="LED Editor">
+    
+    <style>
+        /* LED Pixel Editor Styles */
+        @import url('https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@400;700&display=swap');
+
+        :root {
+            --purple: #9b5de5;
+            --pink: #f15bb5;
+            --yellow: #fee440;
+            --blue: #00bbf9;
+            --cyan: #00f5d4;
+            --dark: #2b2d42;
+            --light: #f8f9fa;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            margin: 0;
+            padding: 15px;
+            padding-bottom: env(safe-area-inset-bottom);
+            background: linear-gradient(135deg, var(--purple) 0%, var(--blue) 100%);
+            min-height: 100vh;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        h1 {
+            font-family: 'Cabin Sketch', cursive;
+            text-align: center;
+            color: white;
+            margin: 0 0 20px 0;
+            font-size: 2.5em;
+            text-shadow: 4px 4px 8px rgba(0,0,0,0.4);
+            font-weight: 700;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            max-width: 100%;
+            margin: 0 auto;
+            justify-content: center;
+        }
+
+        .grid-section {
+            flex: 0 0 auto;
+            width: fit-content;
+            max-height: 488px;
+            background-color: #e4e4e4;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3), 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .controls-section {
+            flex: 0 0 488px;
+            background-color: #f8f8f8;
+            padding: 0;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3), 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .grid {
+            display: grid;
+            gap: 2px;
+            background-color: #f8f8f8;
+            padding: 10px;
+            border-radius: 12px;
+            width: 458px;
+            height: 458px;
+            flex-shrink: 0;
+            margin: 0 auto;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            box-shadow: inset 0 4px 12px rgba(0,0,0,0.15);
+            align-content: start;
+            justify-content: start;
+        }
+
+        .pixel {
+            background-color: #000000;
+            border: none;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: transform 0.1s, box-shadow 0.1s;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        .pixel:active {
+            transform: scale(0.9);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .controls {
+            background-color: #e4e4e4;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: none;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            border-bottom: 3px solid var(--purple);
+        }
+
+        .tab {
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border: none;
+            background-color: transparent;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.2s;
+            color: var(--dark);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .tab:hover {
+            background-color: var(--light);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, var(--purple), var(--pink));
+            color: white;
+            box-shadow: 0 6px 12px rgba(155, 93, 229, 0.4);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section {
+            margin: 15px 0;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .section h3 {
+            font-family: 'Cabin Sketch', cursive;
+            color: var(--purple);
+            margin: 0 0 12px 0;
+            font-size: 1.3em;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(155, 93, 229, 0.2);
+        }
+
+        .color-palette {
+            display: flex;
+            gap: 8px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .color-palette-horizontal {
+            display: flex;
+            gap: 4px;
+            margin: 10px 0;
+            flex-wrap: nowrap;
+            justify-content: space-between;
+            overflow: visible;
+        }
+
+        .color-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            position: relative;
+            flex-shrink: 0;
+            flex: 1;
+        }
+
+        .color-swatch {
+            width: 100%;
+            max-width: 42px;
+            aspect-ratio: 1;
+            border: 2px solid #333;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        .color-swatch.split {
+            background: linear-gradient(135deg, #000000 50%, #FFFFFF 50%);
+        }
+
+        .color-swatch:active {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .color-swatch.large {
+            width: 40px;
+            height: 40px;
+        }
+
+        .color-swatch.active {
+            border: 3px solid #007bff;
+            transform: scale(1.1);
+        }
+
+        .color-swatch.base-color {
+            width: 40px;
+            height: 40px;
+        }
+
+        .palette-label {
+            font-size: 0.85em;
+            color: transparent;
+            margin-top: 8px;
+        }
+
+        .current-color {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #333;
+            border-radius: 8px;
+            margin: 10px auto;
+            display: block;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .current-color:active {
+            transform: scale(1.1);
+        }
+
+        .color-section {
+            text-align: center;
+        }
+
+        .color-shade {
+            width: 35px;
+            height: 35px;
+            border: 2px solid #333;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: absolute;
+            left: 0;
+        }
+
+        .color-shade.lighter {
+            opacity: 0;
+            transform: translateY(0) scale(0.8);
+        }
+
+        .color-shade.lighter.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .color-shade.darker {
+            opacity: 0;
+            transform: translateY(0) scale(0.8);
+        }
+
+        .color-shade.darker.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .color-shade:active {
+            transform: scale(0.9);
+        }
+
+        .tool-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        button {
+            padding: 12px 15px;
+            font-size: 14px;
+            border: 2px solid var(--purple);
+            background-color: white;
+            color: var(--purple);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+            font-weight: 600;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+        }
+
+        button:hover {
+            background-color: var(--purple);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(155, 93, 229, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0) scale(0.98);
+            box-shadow: 0 2px 6px rgba(155, 93, 229, 0.3);
+        }
+
+        button.active {
+            background: linear-gradient(135deg, var(--purple), var(--pink));
+            color: white;
+            border-color: var(--purple);
+            box-shadow: 0 4px 12px rgba(155, 93, 229, 0.4);
+        }
+
+        .tool-buttons button {
+            flex: 1;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 10px;
+            align-items: center;
+            margin: 10px 0;
+            font-size: 0.95em;
+        }
+
+        input[type="text"], input[type="range"], input[type="number"] {
+            padding: 10px;
+            font-size: 14px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        input[type="range"] {
+            padding: 0;
+        }
+
+        select {
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+            font-size: 0.9em;
+        }
+
+        .status.success {
+            background: linear-gradient(135deg, var(--cyan), var(--blue));
+            color: white;
+            display: block;
+        }
+
+        .status.error {
+            background: linear-gradient(135deg, var(--pink), var(--purple));
+            color: white;
+            display: block;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.5em;
+            }
+            
+            .grid {
+                width: 90vw;
+                height: 90vw;
+                max-width: 400px;
+                max-height: 400px;
+            }
+            
+            .grid-section, .controls-section {
+                flex: 1 1 100%;
+            }
+            
+            .controls {
+                padding: 15px;
+            }
+            
+            button {
+                padding: 10px 12px;
+                font-size: 12px;
+            }
+            
+            .section h3 {
+                font-size: 0.9em;
+            }
+            
+            .color-swatch {
+                max-width: 35px;
+            }
+            
+            .color-shade {
+                width: 30px !important;
+                height: 30px !important;
+            }
+            
+            .color-palette-horizontal {
+                gap: 2px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 LED Pixel Editor</h1>
+    
+    <div class="container">
+        <div class="grid-section">
+            <div class="grid" id="pixelGrid"></div>
+        </div>
+        
+        <div class="controls-section">
+            <div class="controls">
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('editor')">Editor</button>
+                    <button class="tab" onclick="switchTab('playlists')">Playlists</button>
+                    <button class="tab" onclick="switchTab('settings')">Settings</button>
+                </div>
+                
+                <div id="editorTab" class="tab-content active">
+                    <div class="section">
+                        <h3>Tools</h3>
+                        <div class="tool-buttons">
+                            <button id="paintTool" class="active" onclick="selectTool('paint')">🖌️ Paint</button>
+                            <button id="fillTool" onclick="selectTool('fill')">🪣 Fill</button>
+                            <button id="pickerTool" onclick="selectTool('picker')">💉 Picker</button>
+                            <button id="undoButton" onclick="undo()">↶ Undo</button>
+                        </div>
+                    </div>
+                    
+                    <div class="section color-section">
+                        <div id="currentColorDisplay" class="current-color"></div>
+                        
+                        <input type="text" id="hexInput" placeholder="#FF0000" maxlength="7" 
+                               style="width: 100%; padding: 10px; text-align: center; font-family: monospace; font-size: 16px; text-transform: uppercase; border: none; background: transparent; outline: none; font-weight: bold; color: #333;"
+                               oninput="handleHexInput(this.value)">
+                        
+                        <div class="palette-label" style="font-weight: bold;">Colours</div>
+                        <div id="colorPickerContainer" class="color-palette-horizontal"></div>
+                        
+                        <div class="palette-label" style="font-weight: bold;">Recent Colours</div>
+                        <div id="recentColors" class="color-palette"></div>
+                    </div>
+                    
+                    <div class="section">
+                        <h3>LED Control</h3>
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;">
+                            <button id="powerButton" onclick="togglePower()" style="flex: 0 0 50px; padding: 12px; font-size: 18px; background-color: #28a745; color: white; font-weight: bold; border-color: #28a745;">⏻</button>
+                            <button onclick="sendToLEDs()" style="flex: 1; padding: 12px 15px; font-size: 14px; background-color: #28a745; color: white; font-weight: bold; border-color: #28a745;">Send to LEDs</button>
+                            <label style="display: flex; align-items: center; gap: 5px; white-space: nowrap; font-size: 0.9em; cursor: pointer;">
+                                <input type="checkbox" id="realtimeMode" checked onchange="toggleRealtime()" style="width: auto; cursor: pointer;">
+                                <span id="realtimeStatus" style="color: #28a745;">Real-time</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="section">
+                        <h3>WLED Presets</h3>
+                        <select id="presetSelect" style="width: 100%; margin-bottom: 10px;">
+                            <option value="">Select a preset...</option>
+                        </select>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <button onclick="loadPresetFromWLED()" style="flex: 1;">Load</button>
+                            <button onclick="clearAll()" style="flex: 1; background-color: #dc3545; color: white; border-color: #dc3545;">Clear</button>
+                            <button onclick="saveToWLED()" style="flex: 1; background-color: #007bff; color: white; border-color: #007bff;">💾 Save</button>
+                        </div>
+                        <button onclick="deletePreset()" style="width: 100%; background-color: #dc3545; color: white; border-color: #dc3545;">Delete Preset</button>
+                    </div>
+                </div>
+                
+                <div id="playlistsTab" class="tab-content">
+                    <div class="section">
+                        <h3>WLED Playlists</h3>
+                        <select id="playlistSelect" style="width: 100%; margin-bottom: 10px;">
+                            <option value="">Select playlist...</option>
+                        </select>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <button onclick="createPlaylist()" style="flex: 1; background-color: #17a2b8; color: white; border-color: #17a2b8;">Create New</button>
+                            <button onclick="playPlaylist()" style="flex: 1; background-color: #28a745; color: white; border-color: #28a745;">Play</button>
+                        </div>
+
+                        <div id="playlistBuilder" style="display: none; border: 2px solid #17a2b8; border-radius: 8px; padding: 15px; margin-top: 10px;">
+                            <h4 style="margin: 0 0 10px 0; font-size: 0.9em;">Playlist Builder</h4>
+                            <input type="text" id="playlistName" placeholder="Playlist name" style="width: 100%; padding: 10px; margin-bottom: 10px;">
+
+                            <label style="font-size: 0.85em; color: #666;">Add Preset:</label>
+                            <select id="presetToAdd" style="width: 100%; padding: 10px; margin-bottom: 10px;">
+                                <option value="">Select preset to add...</option>
+                            </select>
+
+                            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                                <div style="flex: 1;">
+                                    <label style="font-size: 0.85em; color: #666;">Duration (sec):</label>
+                                    <input type="number" id="frameDuration" value="1" step="0.1" min="0.1" style="width: 100%; padding: 8px;">
+                                </div>
+                                <div style="flex: 1;">
+                                    <label style="font-size: 0.85em; color: #666;">Transition (sec):</label>
+                                    <input type="number" id="frameTransition" value="0.5" step="0.1" min="0" style="width: 100%; padding: 8px;">
+                                </div>
+                            </div>
+
+                            <button onclick="addPresetToPlaylist()" style="width: 100%; padding: 10px; margin-bottom: 10px; background-color: #17a2b8; color: white; border: 2px solid #17a2b8;">Add to Playlist</button>
+
+                            <div style="font-size: 0.85em; color: #666; margin-bottom: 5px;">Playlist Order:</div>
+                            <div id="playlistOrder" style="min-height: 60px; padding: 10px; border: 2px solid #ccc; border-radius: 8px; margin-bottom: 10px; background-color: #f8f9fa;">
+                                <em style="color: #999;">No presets added yet</em>
+                            </div>
+
+                            <div style="display:flex; gap:10px; align-items:flex-end; margin-bottom:10px;">
+                                <div style="flex:1;">
+                                    <label style="font-size:0.85em; color:#666; display:block; margin-bottom:6px;">Repeat (0 = forever):</label>
+                                    <input type="number" id="playlistRepeat" value="2" min="0" step="1" style="width:100%; padding:8px;">
+                                </div>
+
+                                <div style="display:flex; gap:10px;">
+                                    <button onclick="savePlaylist()" style="padding: 10px 14px; background-color: #28a745; color: white; border: 2px solid #28a745;">Save</button>
+                                    <button onclick="cancelPlaylist()" style="padding: 10px 14px; background-color: #6c757d; color: white; border: 2px solid #6c757d;">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="settingsTab" class="tab-content">
+                    <div class="section">
+                        <h3>WLED Devices</h3>
+                        
+                        <button onclick="scanForWLED()" id="scanButton" style="width: 100%; margin-bottom: 15px; background-color: #17a2b8; color: white; border-color: #17a2b8; padding: 15px;">
+                            🔍 Scan for WLED Devices
+                        </button>
+                        
+                        <div id="scanStatus" style="font-size: 0.9em; color: #666; margin-bottom: 10px; display: none;"></div>
+                        
+                        <div id="discoveredDevices" style="display: none; margin-bottom: 15px;">
+                            <label style="font-weight: bold; font-size: 0.9em; color: #666; display: block; margin-bottom: 5px;">Discovered Devices:</label>
+                            <select id="deviceList" style="width: 100%; margin-bottom: 10px;" onchange="selectDiscoveredDevice()">
+                                <option value="">Select a device...</option>
+                            </select>
+                        </div>
+                        
+                        <div style="border-top: 2px solid #ddd; padding-top: 15px; margin-top: 15px;">
+                            <label style="font-weight: bold; font-size: 0.9em; color: #666; display: block; margin-bottom: 5px;">Manual Configuration:</label>
+                            <div class="settings-grid">
+                                <label>WLED IP:</label>
+                                <input type="text" id="wledIP" value="192.168.1.240">
+                                <button onclick="updateWLEDIP()" style="padding: 8px 12px;">Connect</button>
+                                
+                                <label>Total LEDs:</label>
+                                <input type="text" id="totalLEDs" value="256" readonly style="background-color: #f8f9fa;">
+                                <span></span>
+                                
+                                <label>Layout:</label>
+                                <span id="layoutDisplay" style="color: #666; font-size: 0.9em;">16x16 matrix</span>
+                                <span></span>
+                                
+                                <label style="display: none;">Width:</label>
+                                <input type="number" id="gridWidth" value="16" min="1" style="display: none;">
+                                <span id="gridWidthDisplay" style="display: none;">16</span>
+                                
+                                <label style="display: none;">Height:</label>
+                                <input type="number" id="gridHeight" value="16" min="1" style="display: none;">
+                                <span id="gridHeightDisplay" style="display: none;">16</span>
+                                
+                                <label>Brightness:</label>
+                                <input type="range" id="brightness" min="1" max="255" value="96" oninput="updateBrightness()">
+                                <span id="brightnessValue">96</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="section">
+                        <h3>GIF Player</h3>
+                        <p style="font-size: 0.9em; color: #666; margin: 0 0 10px 0;">
+                            Upload and manage animated GIFs for your LED matrix
+                        </p>
+                        <button onclick="openGifPlayer()" style="width: 100%; background-color: #17a2b8; color: white; border-color: #17a2b8; padding: 15px;">
+                            🎬 Open GIF Player
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="status" class="status"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // LED Pixel Editor - WLED-Only Version (Single File)
+        
+        // ========== GLOBAL VARIABLES ==========
+        let tool = 'paint', color = '#ff0000', grid = [], recentColors = [];
+        let wledIP = '192.168.1.240', wledPresets = {}, wledPlaylists = {};
+        let playlistFrames = [], isLEDOn = true, isDrawing = false;
+        let undoStack = [], realtimeMode = true, updateQueue = [];
+        let updateTimer = null, isSending = false, activeColorColumn = null;
+        let gridWidth = 16, gridHeight = 16;
+        let discoveredDevices = [];
+
+        const mainColors = [
+            { name: 'Red', color: '#FF0000' }, { name: 'Orange', color: '#FF8000' },
+            { name: 'Yellow', color: '#FFFF00' }, { name: 'Green', color: '#00FF00' },
+            { name: 'Cyan', color: '#00FFFF' }, { name: 'Blue', color: '#0000FF' },
+            { name: 'Purple', color: '#8000FF' }, { name: 'Pink', color: '#FF00FF'},
+            { name: 'Grayscale', color: 'split' }
+        ];
+
+        // Initialize grid with current dimensions
+        function initializeGrid() {
+            const totalLEDs = getTotalLEDs();
+            grid = [];
+            for (let i = 0; i < totalLEDs; i++) grid[i] = '#000000';
+        }
+        
+        initializeGrid();
+
+        // Helper functions to avoid repeated calculations
+        function getTotalLEDs() {
+            return gridWidth * gridHeight;
+        }
+
+        function getActualColumns() {
+            return Math.min(gridWidth, 32);
+        }
+
+        function getNumRows() {
+            return Math.ceil(getTotalLEDs() / getActualColumns());
+        }
+
+        // ========== SETTINGS ==========
+        function loadSettings() {
+            const savedIP = localStorage.getItem('wledIP');
+            const savedBrightness = localStorage.getItem('brightness');
+            const savedRecentColors = localStorage.getItem('recentColors');
+            const savedRealtimeMode = localStorage.getItem('realtimeMode');
+            const savedGridWidth = localStorage.getItem('gridWidth');
+            const savedGridHeight = localStorage.getItem('gridHeight');
+            
+            if (savedIP) {
+                wledIP = savedIP;
+                document.getElementById('wledIP').value = savedIP;
+            }
+            
+            if (savedGridWidth && savedGridHeight) {
+                gridWidth = parseInt(savedGridWidth);
+                gridHeight = parseInt(savedGridHeight);
+                updateGridDisplay();
+            }
+            
+            if (savedBrightness) {
+                document.getElementById('brightness').value = savedBrightness;
+                updateBrightness();
+            }
+            if (savedRecentColors) {
+                recentColors = JSON.parse(savedRecentColors);
+                renderRecentColors();
+            }
+            if (savedRealtimeMode !== null) {
+                realtimeMode = savedRealtimeMode === 'true';
+                document.getElementById('realtimeMode').checked = realtimeMode;
+                updateRealtimeStatus();
+            }
+        }
+
+        function saveSettings() {
+            localStorage.setItem('wledIP', wledIP);
+            localStorage.setItem('brightness', document.getElementById('brightness').value);
+            localStorage.setItem('recentColors', JSON.stringify(recentColors));
+            localStorage.setItem('realtimeMode', realtimeMode.toString());
+            localStorage.setItem('gridWidth', gridWidth.toString());
+            localStorage.setItem('gridHeight', gridHeight.toString());
+        }
+
+        function updateWLEDIP() {
+            wledIP = document.getElementById('wledIP').value;
+            saveSettings();
+            configureFromWLEDInfo(wledIP);
+        }
+
+        async function scanForWLED() {
+            const scanButton = document.getElementById('scanButton');
+            const scanStatus = document.getElementById('scanStatus');
+            const discoveredDevicesDiv = document.getElementById('discoveredDevices');
+            const deviceList = document.getElementById('deviceList');
+            
+            scanButton.disabled = true;
+            scanButton.textContent = '🔍 Scanning...';
+            scanStatus.style.display = 'block';
+            scanStatus.textContent = 'Scanning network for WLED devices...';
+            
+            discoveredDevices = [];
+            deviceList.innerHTML = '<option value="">Select a device...</option>';
+            
+            // Get current network from browser's location or use common ranges
+            const ranges = [
+                { base: '192.168.1.', start: 1, end: 254 },
+                { base: '192.168.0.', start: 1, end: 254 },
+                { base: '10.0.0.', start: 1, end: 254 }
+            ];
+            
+            let found = 0;
+            let scanned = 0;
+            const total = ranges.reduce((sum, r) => sum + (r.end - r.start + 1), 0);
+            
+            for (const range of ranges) {
+                const promises = [];
+                for (let i = range.start; i <= range.end; i++) {
+                    const ip = range.base + i;
+                    promises.push(checkWLEDDevice(ip));
+                }
+                
+                // Process in batches to avoid overwhelming the browser
+                const batchSize = 20;
+                for (let i = 0; i < promises.length; i += batchSize) {
+                    const batch = promises.slice(i, i + batchSize);
+                    const results = await Promise.all(batch);
+                    
+                    results.forEach(device => {
+                        if (device) {
+                            discoveredDevices.push(device);
+                            found++;
+                            const option = document.createElement('option');
+                            option.value = device.ip;
+                            option.textContent = `${device.name} (${device.ip}) - ${device.leds} LEDs`;
+                            deviceList.appendChild(option);
+                        }
+                    });
+                    
+                    scanned += batch.length;
+                    scanStatus.textContent = `Scanned ${scanned}/${total} addresses... Found ${found} device(s)`;
+                }
+            }
+            
+            scanButton.disabled = false;
+            scanButton.textContent = '🔍 Scan for WLED Devices';
+            
+            if (found > 0) {
+                scanStatus.textContent = `✓ Scan complete! Found ${found} WLED device(s)`;
+                discoveredDevicesDiv.style.display = 'block';
+            } else {
+                scanStatus.textContent = '⚠ No WLED devices found. Try manual configuration.';
+                setTimeout(() => {
+                    scanStatus.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        async function checkWLEDDevice(ip) {
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 1000); // 1 second timeout
+                
+                const response = await fetch(`http://${ip}/json/info`, {
+                    method: 'GET',
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeout);
+                
+                if (response.ok) {
+                    const info = await response.json();
+                    if (info.leds && info.leds.count) {
+                        return {
+                            ip: ip,
+                            name: info.name || 'WLED Device',
+                            leds: info.leds.count,
+                            matrix: info.leds.matrix || null,
+                            version: info.ver || 'Unknown'
+                        };
+                    }
+                }
+            } catch (error) {
+                // Device not responding or not a WLED device
+            }
+            return null;
+        }
+
+        async function selectDiscoveredDevice() {
+            const deviceList = document.getElementById('deviceList');
+            const selectedIP = deviceList.value;
+            
+            if (!selectedIP) return;
+            
+            const device = discoveredDevices.find(d => d.ip === selectedIP);
+            if (device) {
+                wledIP = selectedIP;
+                document.getElementById('wledIP').value = selectedIP;
+                
+                // Auto-configure from device info
+                if (device.matrix && device.matrix.w && device.matrix.h) {
+                    // Device has 2D matrix configuration
+                    gridWidth = device.matrix.w;
+                    gridHeight = device.matrix.h;
+                } else {
+                    // Linear strip - set width to total LEDs, height to 1
+                    // Grid will automatically wrap at 32 pixels wide
+                    gridWidth = device.leds;
+                    gridHeight = 1;
+                }
+                
+                updateGridDisplay();
+                saveSettings();
+                showStatus(`✓ Connected to ${device.name} (${device.leds} LEDs)`);
+                fetchWLEDPresets();
+            }
+        }
+
+        async function configureFromWLEDInfo(ip) {
+            try {
+                const response = await fetch(`http://${ip}/json/info`);
+                if (!response.ok) throw new Error('Failed to fetch device info');
+                
+                const info = await response.json();
+                
+                if (info.leds && info.leds.count) {
+                    if (info.leds.matrix && info.leds.matrix.w && info.leds.matrix.h) {
+                        // Device has 2D matrix configuration
+                        gridWidth = info.leds.matrix.w;
+                        gridHeight = info.leds.matrix.h;
+                    } else {
+                        // Linear strip - set width to total LEDs, height to 1
+                        gridWidth = info.leds.count;
+                        gridHeight = 1;
+                    }
+                    
+                    updateGridDisplay();
+                    showStatus(`✓ Connected to ${info.name || 'WLED'} (${info.leds.count} LEDs)`);
+                    fetchWLEDPresets();
+                }
+            } catch (error) {
+                console.error('Error fetching WLED info:', error);
+                showStatus('⚠ Connected but could not fetch device info', false);
+                fetchWLEDPresets();
+            }
+        }
+
+        function getLayoutDescription() {
+            const totalLEDs = gridWidth * gridHeight;
+            const maxColumns = 32;
+            const actualColumns = Math.min(gridWidth, maxColumns);
+            const numRows = Math.ceil(totalLEDs / actualColumns);
+            
+            if (gridHeight === 1) {
+                if (totalLEDs <= 32) {
+                    return `${totalLEDs} LEDs (single row)`;
+                } else {
+                    const fullRows = Math.floor(totalLEDs / actualColumns);
+                    const lastRowPixels = totalLEDs % actualColumns;
+                    if (lastRowPixels === 0) {
+                        return `${numRows} rows × ${actualColumns} LEDs`;
+                    } else {
+                        return `${fullRows} rows × ${actualColumns}, 1 row × ${lastRowPixels}`;
+                    }
+                }
+            } else {
+                return `${gridWidth}×${gridHeight} matrix`;
+            }
+        }
+
+        function updateGridDisplay() {
+            const totalLEDs = gridWidth * gridHeight;
+            
+            document.getElementById('gridWidth').value = gridWidth;
+            document.getElementById('gridHeight').value = gridHeight;
+            document.getElementById('gridWidthDisplay').textContent = gridWidth;
+            document.getElementById('gridHeightDisplay').textContent = gridHeight;
+            document.getElementById('totalLEDs').value = totalLEDs;
+            
+            // Update layout description using helper function
+            document.getElementById('layoutDisplay').textContent = getLayoutDescription();
+            
+            // Reinitialize and redraw grid
+            initializeGrid();
+            createGrid();
+            saveSettings();
+        }
+
+        function openGifPlayer() {
+            // Try to use the same host if running on ESP32, otherwise use WLED IP
+            const currentHost = window.location.hostname;
+            let gifPlayerURL;
+            
+            if (currentHost && currentHost !== '' && currentHost !== 'localhost') {
+                // Running from ESP32, use same host
+                gifPlayerURL = 'http://' + currentHost + '/gifplayer.htm';
+            } else {
+                // Running from file or different server, use WLED IP
+                const ip = document.getElementById('wledIP').value;
+                gifPlayerURL = 'http://' + ip + '/gifplayer.htm';
+            }
+            
+            window.open(gifPlayerURL, '_blank');
+        }
+
+        // ========== UI FUNCTIONS ==========
+        function toggleRealtime() {
+            realtimeMode = document.getElementById('realtimeMode').checked;
+            updateRealtimeStatus(); saveSettings();
+            showStatus(realtimeMode ? '✓ Real-time mode enabled' : '⚠ Real-time mode disabled - use Send button');
+        }
+
+        function updateRealtimeStatus() {
+            const statusEl = document.getElementById('realtimeStatus');
+            statusEl.textContent = 'Real-time';
+            statusEl.style.color = realtimeMode ? '#28a745' : '#dc3545';
+        }
+
+        function saveState() {
+            undoStack.push([...grid]);
+            if (undoStack.length > 20) undoStack.shift();
+        }
+
+        function undo() {
+            if (undoStack.length > 0) {
+                grid = undoStack.pop(); updateDisplay();
+                showStatus('✓ Undone');
+                if (realtimeMode) sendToLEDs();
+            } else { showStatus('⚠ Nothing to undo', false); }
+        }
+
+        function createGrid() {
+            const container = document.getElementById('pixelGrid');
+            container.innerHTML = '';
+            
+            const totalLEDs = gridWidth * gridHeight;
+            const maxColumns = 32;
+            const actualColumns = Math.min(gridWidth, maxColumns);
+            const numRows = Math.ceil(totalLEDs / actualColumns);
+            
+            // Set grid to always have 32 columns max
+            container.style.gridTemplateColumns = `repeat(${actualColumns}, 1fr)`;
+            
+            // Calculate pixel size to fit in 458x458 container (438px usable with padding)
+            const containerSize = 438; // 458px - 20px padding
+            const gap = 2;
+            const availableWidth = containerSize - (actualColumns - 1) * gap;
+            const availableHeight = containerSize - (numRows - 1) * gap;
+            
+            // Calculate pixel size based on limiting dimension
+            const pixelSizeByWidth = availableWidth / actualColumns;
+            const pixelSizeByHeight = availableHeight / numRows;
+            const pixelSize = Math.min(pixelSizeByWidth, pixelSizeByHeight);
+            
+            // Create only the exact number of LEDs needed
+            for (let i = 0; i < totalLEDs; i++) {
+                const pixel = document.createElement('div');
+                pixel.className = 'pixel';
+                pixel.style.backgroundColor = grid[i];
+                pixel.style.width = pixelSize + 'px';
+                pixel.style.height = pixelSize + 'px';
+                
+                pixel.onmousedown = (e) => { e.preventDefault(); isDrawing = true; saveState(); handlePixelClick(i); };
+                pixel.onmouseenter = () => { if (isDrawing) handlePixelClick(i); };
+                pixel.onmouseup = () => { isDrawing = false; };
+                pixel.ontouchstart = (e) => { e.preventDefault(); isDrawing = true; saveState(); handlePixelClick(i); };
+                pixel.ontouchmove = (e) => {
+                    e.preventDefault();
+                    if (isDrawing) {
+                        const touch = e.touches[0];
+                        const element = document.elementFromPoint(touch.clientX, touch.clientY);
+                        if (element && element.classList.contains('pixel')) {
+                            const pixels = Array.from(document.querySelectorAll('.pixel'));
+                            const index = pixels.indexOf(element);
+                            if (index !== -1) handlePixelClick(index);
+                        }
+                    }
+                };
+                pixel.ontouchend = () => { isDrawing = false; };
+                container.appendChild(pixel);
+            }
+            container.onmouseleave = () => { isDrawing = false; };
+            container.ontouchcancel = () => { isDrawing = false; };
+        }
+
+        function selectTool(newTool) {
+            tool = newTool;
+            ['paintTool', 'fillTool', 'pickerTool'].forEach(t => document.getElementById(t).classList.remove('active'));
+            document.getElementById(newTool + 'Tool').classList.add('active');
+        }
+
+        function switchTab(tabName) {
+            document.getElementById('editorTab').classList.remove('active');
+            document.getElementById('playlistsTab').classList.remove('active');
+            document.getElementById('settingsTab').classList.remove('active');
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            if (tabName === 'editor') {
+                document.getElementById('editorTab').classList.add('active');
+                tabs[0].classList.add('active');
+            } else if (tabName === 'playlists') {
+                document.getElementById('playlistsTab').classList.add('active');
+                tabs[1].classList.add('active');
+            } else if (tabName === 'settings') {
+                document.getElementById('settingsTab').classList.add('active');
+                tabs[2].classList.add('active');
+            }
+        }
+
+        function updateBrightness() {
+            document.getElementById('brightnessValue').textContent = document.getElementById('brightness').value;
+            saveSettings();
+        }
+
+        function handlePixelClick(index) {
+            if (tool === 'paint') {
+                grid[index] = color; updateDisplay();
+                if (realtimeMode) queuePixelUpdate(index, color);
+            } else if (tool === 'fill') {
+                floodFill(index, grid[index], color); updateDisplay();
+                if (realtimeMode) queueFullGridUpdate();
+            } else if (tool === 'picker') {
+                color = grid[index];
+                document.getElementById('currentColorDisplay').style.backgroundColor = color;
+                document.getElementById('hexInput').value = color.toUpperCase();
+                addRecentColor(color);
+                showStatus('✓ Colour picked: ' + color);
+            }
+        }
+
+        function queuePixelUpdate(index, color) {
+            updateQueue.push({ index, color });
+            if (updateTimer) clearTimeout(updateTimer);
+            updateTimer = setTimeout(() => {
+                if (updateQueue.length > 0) {
+                    sendBatchToLED(updateQueue);
+                    updateQueue = [];
+                }
+            }, 50);
+        }
+
+        function queueFullGridUpdate() {
+            if (updateTimer) clearTimeout(updateTimer);
+            updateTimer = setTimeout(() => sendToLEDs(), 100);
+        }
+
+        async function sendBatchToLED(pixels) {
+            if (isSending || pixels.length === 0) return;
+            isSending = true;
+            const ip = document.getElementById('wledIP').value;
+            const brightness = document.getElementById('brightness').value;
+            try {
+                const pixelData = [];
+                pixels.forEach(p => {
+                    const colorStr = p.color.replace('#', '').toLowerCase();
+                    pixelData.push(p.index, p.index + 1, colorStr);
+                });
+                const data = { "on": true, "bri": parseInt(brightness), "seg": { "id": 0, "i": pixelData } };
+                const response = await fetch('http://' + ip + '/json/state', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) console.log('✓ Real-time update successful');
+            } catch (error) { console.error('✗ Real-time update error:', error); }
+            finally { isSending = false; }
+        }
+
+        function floodFill(index, oldColor, newColor) {
+            if (oldColor === newColor || grid[index] !== oldColor) return;
+            grid[index] = newColor;
+            
+            const maxColumns = 32;
+            const actualColumns = Math.min(gridWidth, maxColumns);
+            const totalLEDs = gridWidth * gridHeight;
+            
+            const row = Math.floor(index / actualColumns);
+            const col = index % actualColumns;
+            
+            // Up
+            if (row > 0 && index - actualColumns >= 0) {
+                floodFill(index - actualColumns, oldColor, newColor);
+            }
+            // Down
+            if (index + actualColumns < totalLEDs) {
+                floodFill(index + actualColumns, oldColor, newColor);
+            }
+            // Left
+            if (col > 0) {
+                floodFill(index - 1, oldColor, newColor);
+            }
+            // Right
+            if (col < actualColumns - 1 && index + 1 < totalLEDs) {
+                // Make sure we don't wrap to next row
+                const nextCol = (index + 1) % actualColumns;
+                if (nextCol !== 0 || index + 1 === totalLEDs) {
+                    floodFill(index + 1, oldColor, newColor);
+                }
+            }
+        }
+
+        function updateDisplay() {
+            const pixels = document.querySelectorAll('.pixel');
+            const totalLEDs = gridWidth * gridHeight;
+            for (let i = 0; i < totalLEDs; i++) {
+                if (pixels[i]) pixels[i].style.backgroundColor = grid[i];
+            }
+        }
+
+        function clearAll() {
+            saveState();
+            const totalLEDs = gridWidth * gridHeight;
+            for (let i = 0; i < totalLEDs; i++) grid[i] = '#000000';
+            updateDisplay(); sendToLEDs();
+        }
+
+        function addRecentColor(col) {
+            if (recentColors[0] === col) return;
+            recentColors = recentColors.filter(c => c !== col);
+            recentColors.unshift(col);
+            if (recentColors.length > 11) recentColors.pop();
+            renderRecentColors(); saveSettings();
+        }
+
+        function showStatus(message, isError) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = 'status ' + (isError ? 'error' : 'success');
+            setTimeout(() => { statusEl.className = 'status'; }, 3000);
+        }
+
+        // ========== COLOR PICKER ==========
+        function renderMainColors() {
+            const container = document.getElementById('colorPickerContainer');
+            container.innerHTML = '';
+            mainColors.forEach((colorObj, index) => {
+                const column = document.createElement('div');
+                column.className = 'color-column';
+                column.id = 'color-column-' + index;
+                column.style.position = 'relative';
+                const mainSwatch = document.createElement('div');
+                mainSwatch.className = 'color-swatch';
+                if (colorObj.color === 'split') mainSwatch.classList.add('split');
+                else mainSwatch.style.backgroundColor = colorObj.color;
+                mainSwatch.style.position = 'relative';
+                mainSwatch.style.zIndex = '10';
+                mainSwatch.title = colorObj.name;
+                mainSwatch.onclick = (e) => { 
+                    e.stopPropagation(); 
+                    toggleShades(index, colorObj.color, column, colorObj.name); 
+                };
+                column.appendChild(mainSwatch);
+                container.appendChild(column);
+            });
+        }
+
+        function toggleShades(columnIndex, baseColor, column, colorName) {
+            if (activeColorColumn === columnIndex) { hideAllShades(); activeColorColumn = null; return; }
+            hideAllShades();
+            if (baseColor === 'split') {
+                renderGrayscaleShades(column);
+                activeColorColumn = columnIndex;
+                selectColor('#FFFFFF');
+                return;
+            }
+            const lighterShades = generateLighterShades(baseColor, 5);
+            const darkerShades = generateDarkerShades(baseColor, 5);
+            lighterShades.forEach((shadeColor, i) => {
+                const shade = document.createElement('div');
+                shade.className = 'color-shade lighter';
+                shade.style.backgroundColor = shadeColor;
+                shade.style.top = (-39 * (5 - i)) + 'px';
+                shade.onclick = (e) => { e.stopPropagation(); selectColor(shadeColor); hideAllShades(); };
+                column.appendChild(shade);
+                setTimeout(() => { shade.classList.add('visible'); }, i * 30);
+            });
+            darkerShades.forEach((shadeColor, i) => {
+                const shade = document.createElement('div');
+                shade.className = 'color-shade darker';
+                shade.style.backgroundColor = shadeColor;
+                shade.style.top = (39 * (i + 1)) + 'px';
+                shade.onclick = (e) => { e.stopPropagation(); selectColor(shadeColor); hideAllShades(); };
+                column.appendChild(shade);
+                setTimeout(() => { shade.classList.add('visible'); }, i * 30);
+            });
+            activeColorColumn = columnIndex;
+            selectColor(baseColor);
+        }
+
+        function renderGrayscaleShades(column) {
+            const grayscale = ['#FFFFFF','#E0E0E0','#C0C0C0','#A0A0A0','#808080','#606060','#404040','#202020','#000000'];
+            grayscale.forEach((shadeColor, i) => {
+                const shade = document.createElement('div');
+                shade.className = 'color-shade';
+                shade.style.backgroundColor = shadeColor;
+                if (i < 4) { shade.classList.add('lighter'); shade.style.top = (-39 * (4 - i)) + 'px'; }
+                else if (i > 4) { shade.classList.add('darker'); shade.style.top = (39 * (i - 4)) + 'px'; }
+                shade.onclick = (e) => { e.stopPropagation(); selectColor(shadeColor); hideAllShades(); };
+                column.appendChild(shade);
+                setTimeout(() => { shade.classList.add('visible'); }, i * 30);
+            });
+        }
+
+        function hideAllShades() {
+            document.querySelectorAll('.color-shade').forEach(shade => shade.remove());
+            activeColorColumn = null;
+        }
+
+        function selectColor(selectedColor) {
+            color = selectedColor;
+            document.getElementById('currentColorDisplay').style.backgroundColor = color;
+            document.getElementById('hexInput').value = color.toUpperCase();
+            addRecentColor(color);
+        }
+
+        function generateLighterShades(baseColor, count) {
+            const shades = [];
+            const r = parseInt(baseColor.substr(1, 2), 16);
+            const g = parseInt(baseColor.substr(3, 2), 16);
+            const b = parseInt(baseColor.substr(5, 2), 16);
+            for (let i = count; i > 0; i--) {
+                const factor = i / (count + 1);
+                const newR = Math.round(r + (255 - r) * factor);
+                const newG = Math.round(g + (255 - g) * factor);
+                const newB = Math.round(b + (255 - b) * factor);
+                shades.push(rgbToHex(newR, newG, newB));
+            }
+            return shades;
+        }
+
+        function generateDarkerShades(baseColor, count) {
+            const shades = [];
+            const r = parseInt(baseColor.substr(1, 2), 16);
+            const g = parseInt(baseColor.substr(3, 2), 16);
+            const b = parseInt(baseColor.substr(5, 2), 16);
+            for (let i = 1; i <= count; i++) {
+                const factor = (i / (count + 1)) * 0.5;
+                const newR = Math.round(r * (1 - factor));
+                const newG = Math.round(g * (1 - factor));
+                const newB = Math.round(b * (1 - factor));
+                shades.push(rgbToHex(newR, newG, newB));
+            }
+            return shades;
+        }
+
+        function rgbToHex(r, g, b) {
+            return '#' + r.toString(16).padStart(2, '0') + g.toString(16).padStart(2, '0') + b.toString(16).padStart(2, '0');
+        }
+
+        function renderRecentColors() {
+            const container = document.getElementById('recentColors');
+            if (!container) return;
+            container.innerHTML = '';
+            recentColors.forEach(col => {
+                const swatch = document.createElement('div');
+                swatch.className = 'color-swatch';
+                swatch.style.backgroundColor = col;
+                swatch.onclick = () => {
+                    color = col;
+                    document.getElementById('currentColorDisplay').style.backgroundColor = color;
+                    document.getElementById('hexInput').value = color.toUpperCase();
+                    addRecentColor(col);
+                };
+                container.appendChild(swatch);
+            });
+        }
+
+        function handleHexInput(value) {
+            value = value.replace(/[^#0-9A-Fa-f]/g, '');
+            if (value && !value.startsWith('#')) value = '#' + value;
+            document.getElementById('hexInput').value = value.toUpperCase();
+            if (value.length === 7) {
+                const isValid = /^#[0-9A-F]{6}$/i.test(value);
+                if (isValid) { selectColor(value.toUpperCase()); hideAllShades(); }
+            }
+        }
+
+        // ========== WLED FUNCTIONS ==========
+        async function saveToWLED() {
+            const presetName = prompt('Enter preset name:');
+            if (!presetName) return;
+            
+            try {
+                wledIP = document.getElementById('wledIP').value;
+                const presetsResponse = await fetch('http://' + wledIP + '/presets.json');
+                const presets = await presetsResponse.json();
+                let presetId = 1;
+                while (presets[presetId] && presetId <= 250) presetId++;
+                if (presetId > 250) { showStatus('⚠ WLED preset slots full', false); return; }
+                
+                const brightness = parseInt(document.getElementById('brightness').value);
+                const pixelData = [];
+                const totalLEDs = gridWidth * gridHeight;
+                let i = 0;
+                while (i < totalLEDs) {
+                    const currentColor = grid[i].replace('#', '').toLowerCase();
+                    let endIndex = i + 1;
+                    while (endIndex < totalLEDs && grid[endIndex].replace('#', '').toLowerCase() === currentColor) endIndex++;
+                    pixelData.push(i, endIndex, currentColor);
+                    i = endIndex;
+                }
+                
+                const saveData = {
+                    "psave": presetId, "n": presetName, "o": true, "on": true,
+                    "bri": brightness, "seg": { "id": 0, "i": pixelData }
+                };
+                
+                const response = await fetch('http://' + wledIP + '/json/state', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(saveData)
+                });
+                
+                if (response.ok) {
+                    showStatus('✓ Saved to WLED slot ' + presetId + ': ' + presetName);
+                    setTimeout(() => fetchWLEDPresets(), 1000);
+                } else { showStatus('✗ Failed to save to WLED', true); }
+            } catch (error) {
+                showStatus('✗ Could not connect to WLED', true);
+                console.error('WLED save error:', error);
+            }
+        }
+
+        async function deletePreset() {
+            const presetSelect = document.getElementById('presetSelect');
+            const selectedId = presetSelect.value;
+            if (!selectedId) { showStatus('⚠ Please select a preset', false); return; }
+            
+            try {
+                wledIP = document.getElementById('wledIP').value;
+                const presetsResponse = await fetch('http://' + wledIP + '/presets.json');
+                const presets = await presetsResponse.json();
+                const preset = presets[selectedId];
+                if (!preset) { showStatus('⚠ Preset not found', false); return; }
+                
+                if (!confirm('Delete preset "' + preset.n + '" from WLED?')) return;
+                
+                const response = await fetch('http://' + wledIP + '/json/state', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ "pdel": parseInt(selectedId) })
+                });
+                
+                if (response.ok) {
+                    showStatus('✓ Preset deleted from WLED');
+                    setTimeout(() => fetchWLEDPresets(), 500);
+                } else { showStatus('✗ Failed to delete preset', true); }
+            } catch (error) {
+                showStatus('✗ Could not connect to WLED', true);
+                console.error('WLED delete error:', error);
+            }
+        }
+
+        async function fetchWLEDPresets() {
+            try {
+                wledIP = document.getElementById('wledIP').value;
+                const response = await fetch('http://' + wledIP + '/presets.json');
+                if (!response.ok) throw new Error('Failed to fetch presets');
+                const presets = await response.json();
+                renderWLEDPresets(presets);
+                showStatus('✓ Presets loaded from WLED');
+            } catch (error) {
+                console.error('fetchWLEDPresets error:', error);
+                showStatus('⚠ Could not connect to WLED', false);
+            }
+        }
+
+        function renderWLEDPresets(wledPresets) {
+            const presetSelect = document.getElementById('presetSelect');
+            const playlistSelect = document.getElementById('playlistSelect');
+            const presetToAdd = document.getElementById('presetToAdd');
+            
+            presetSelect.innerHTML = '<option value="">Select a preset...</option>';
+            playlistSelect.innerHTML = '<option value="">Select playlist...</option>';
+            presetToAdd.innerHTML = '<option value="">Select preset to add...</option>';
+            
+            const allPresets = [];
+            const allPlaylists = [];
+            
+            Object.keys(wledPresets).forEach((key) => {
+                const preset = wledPresets[key];
+                if (preset && preset.n) {
+                    if (preset.playlist) {
+                        allPlaylists.push({ id: key, name: preset.n, data: preset });
+                        wledPlaylists[key] = preset;
+                    } else {
+                        allPresets.push({ id: key, name: preset.n, data: preset });
+                    }
+                }
+            });
+            
+            allPresets.sort((a, b) => a.name.localeCompare(b.name));
+            allPlaylists.sort((a, b) => a.name.localeCompare(b.name));
+            
+            allPresets.forEach(preset => {
+                const option = document.createElement('option');
+                option.value = preset.id;
+                option.textContent = preset.name;
+                presetSelect.appendChild(option);
+                
+                const option2 = document.createElement('option');
+                option2.value = preset.id;
+                option2.textContent = preset.name;
+                presetToAdd.appendChild(option2);
+            });
+            
+            allPlaylists.forEach(playlist => {
+                const option = document.createElement('option');
+                option.value = playlist.id;
+                option.textContent = playlist.name;
+                playlistSelect.appendChild(option);
+            });
+        }
+
+        async function togglePower() {
+            try {
+                wledIP = document.getElementById('wledIP').value;
+                const response = await fetch('http://' + wledIP + '/json/state', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ on: !isLEDOn })
+                });
+                if (response.ok) {
+                    isLEDOn = !isLEDOn;
+                    const powerButton = document.getElementById('powerButton');
+                    powerButton.style.backgroundColor = isLEDOn ? '#28a745' : '#dc3545';
+                    showStatus('✓ LED turned ' + (isLEDOn ? 'ON' : 'OFF'));
+                } else { showStatus('✗ Failed to toggle power', true); }
+            } catch (error) { showStatus('✗ Could not connect to WLED', true); }
+        }
+
+        async function sendToLEDs() {
+            const ip = document.getElementById('wledIP').value;
+            const brightness = document.getElementById('brightness').value;
+            try {
+                const allPixels = [];
+                const totalLEDs = gridWidth * gridHeight;
+                for (let i = 0; i < totalLEDs; i++) {
+                    const colorStr = grid[i].replace('#', '').toLowerCase();
+                    allPixels.push(i, colorStr);
+                }
+                const data = { "on": true, "bri": parseInt(brightness), "seg": { "id": 0, "i": allPixels } };
+                const response = await fetch('http://' + ip + '/json/state', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) showStatus('✓ All ' + totalLEDs + ' pixels sent!');
+                else showStatus('✗ Failed to send to LED matrix', true);
+            } catch (error) { showStatus('✗ Could not connect to WLED device', true); }
+        }
+
+        async function loadPresetFromWLED() {
+            const presetIndex = document.getElementById('presetSelect').value;
+            if (!presetIndex) { showStatus('✗ Please select a preset', true); return; }
+            
+            try {
+                wledIP = document.getElementById('wledIP').value;
+                const presetsResponse = await fetch('http://' + wledIP + '/presets.json');
+                const presets = await presetsResponse.json();
+                const preset = presets[presetIndex];
+                
+                if (!preset) { showStatus('✗ Preset not found', true); return; }
+                
+                const totalLEDs = gridWidth * gridHeight;
+                for (let i = 0; i < totalLEDs; i++) grid[i] = '#000000';
+                let foundData = false;
+                
+                if (preset.seg && Array.isArray(preset.seg)) {
+                    for (let s = 0; s < preset.seg.length; s++) {
+                        const segment = preset.seg[s];
+                        if (segment && segment.i) {
+                            const pixelData = segment.i;
+                            for (let i = 0; i < pixelData.length; i += 3) {
+                                const startIndex = pixelData[i];
+                                const endIndex = pixelData[i + 1];
+                                const colorStr = pixelData[i + 2];
+                                if (startIndex !== undefined && endIndex !== undefined && colorStr) {
+                                    for (let idx = startIndex; idx < endIndex && idx < totalLEDs; idx++) {
+                                        grid[idx] = '#' + colorStr;
+                                    }
+                                }
+                            }
+                            foundData = true;
+                            break;
+                        }
+                    }
+                } else if (preset.seg && preset.seg.i) {
+                    const pixelData = preset.seg.i;
+                    for (let i = 0; i < pixelData.length; i += 3) {
+                        const startIndex = pixelData[i];
+                        const endIndex = pixelData[i + 1];
+                        const colorStr = pixelData[i + 2];
+                        if (startIndex !== undefined && endIndex !== undefined && colorStr) {
+                            for (let idx = startIndex; idx < endIndex && idx < totalLEDs; idx++) {
+                                grid[idx] = '#' + colorStr;
+                            }
+                        }
+                    }
+                    foundData = true;
+                }
+                
+                if (foundData) { 
+                    saveState(); 
+                    updateDisplay(); 
+                    showStatus('✓ Preset loaded from WLED!'); 
+                } else { 
+                    showStatus('⚠ Preset has no displayable data', false); 
+                }
+            } catch (error) {
+                console.error('Error loading preset:', error);
+                showStatus('✗ Error: ' + error.message, true);
+            }
+        }
+
+        // ========== PLAYLIST FUNCTIONS ==========
+        function createPlaylist() {
+            playlistFrames = [];
+            document.getElementById('playlistBuilder').style.display = 'block';
+            document.getElementById('playlistName').value = '';
+            document.getElementById('playlistOrder').innerHTML = '<em style="color: #999;">No presets added yet</em>';
+        }
+
+        function addPresetToPlaylist() {
+            const presetId = document.getElementById('presetToAdd').value;
+            const duration = parseFloat(document.getElementById('frameDuration').value);
+            const transition = parseFloat(document.getElementById('frameTransition').value);
+            if (!presetId) { showStatus('✗ Please select a preset', true); return; }
+            const presetName = document.getElementById('presetToAdd').options[document.getElementById('presetToAdd').selectedIndex].text;
+            playlistFrames.push({ id: parseInt(presetId, 10) || presetId, name: presetName, duration: duration, transition: transition });
+            renderPlaylistOrder();
+        }
+
+        function renderPlaylistOrder() {
+            const container = document.getElementById('playlistOrder');
+            if (playlistFrames.length === 0) {
+                container.innerHTML = '<em style="color: #999;">No presets added yet</em>';
+                return;
+            }
+            container.innerHTML = '';
+            playlistFrames.forEach((frame, index) => {
+                const frameDiv = document.createElement('div');
+                frameDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 5px; background-color: white; border-radius: 5px; border: 1px solid #ddd;';
+                frameDiv.innerHTML = '<span style="flex: 1;">' + (index + 1) + '. ' + frame.name + '</span>' +
+                    '<span style="font-size: 0.8em; color: #666; margin-right: 10px;">' + frame.duration + 's / ' + frame.transition + 's</span>' +
+                    '<button onclick="removeFrame(' + index + ')" style="padding: 5px 10px; background-color: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">✕</button>';
+                container.appendChild(frameDiv);
+            });
+        }
+
+        function removeFrame(index) {
+            playlistFrames.splice(index, 1);
+            renderPlaylistOrder();
+        }
+
+        function cancelPlaylist() {
+            document.getElementById('playlistBuilder').style.display = 'none';
+            playlistFrames = [];
+        }
+
+        async function savePlaylist() {
+            const playlistName = document.getElementById('playlistName').value.trim();
+            if (!playlistName) { showStatus('✗ Please enter a playlist name', true); return; }
+            if (playlistFrames.length === 0) { showStatus('✗ Please add at least one preset', true); return; }
+            
+            let repeatCount = 0;
+            const repeatEl = document.getElementById('playlistRepeat');
+            if (repeatEl) {
+                const parsed = parseInt(repeatEl.value, 10);
+                if (!isNaN(parsed) && parsed >= 0) repeatCount = parsed;
+            }
+            
+            document.getElementById('playlistBuilder').style.display = 'none';
+            const framesToSave = [...playlistFrames];
+            playlistFrames = [];
+            
+            try {
+                wledIP = document.getElementById('wledIP').value;
+                const presetsResponse = await fetch('http://' + wledIP + '/presets.json');
+                const presets = await presetsResponse.json();
+                let playlistId = 201;
+                while (presets[playlistId] && playlistId <= 250) playlistId++;
+                
+                if (playlistId > 250) {
+                    showStatus('✗ WLED playlist slots full (201-250)', true);
+                    return;
+                }
+                
+                const psArray = framesToSave.map(f => parseInt(f.id) || f.id);
+                const durArray = framesToSave.map(f => Math.round(f.duration * 10));
+                const transArray = framesToSave.map(f => Math.round(f.transition * 10));
+                
+                const wledPlaylistData = {
+                    "psave": playlistId, "n": playlistName, "o": true, "on": true,
+                    "playlist": { "ps": psArray, "dur": durArray, "transition": transArray, "repeat": repeatCount, "end": 0 }
+                };
+                
+                const saveResponse = await fetch('http://' + wledIP + '/json/state', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(wledPlaylistData)
+                });
+                
+                if (!saveResponse.ok) throw new Error('Save failed: ' + saveResponse.status);
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
+                const verifyResponse = await fetch('http://' + wledIP + '/presets.json');
+                const updatedPresets = await verifyResponse.json();
+                
+                if (updatedPresets[playlistId]) {
+                    showStatus('✓ Saved to WLED slot ' + playlistId + ': ' + playlistName);
+                } else {
+                    showStatus('⚠ Playlist save not confirmed', false);
+                }
+                
+                setTimeout(() => fetchWLEDPresets(), 500);
+            } catch (error) {
+                showStatus('✗ Could not connect to WLED', true);
+                console.error('Playlist save error:', error);
+            }
+        }
+
+        async function playPlaylist() {
+            const playlistId = document.getElementById('playlistSelect').value;
+            if (!playlistId) { showStatus('✗ Please select a playlist', true); return; }
+            
+            try {
+                wledIP = document.getElementById('wledIP').value;
+                const response = await fetch('http://' + wledIP + '/json/state', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ps: parseInt(playlistId) })
+                });
+                
+                if (response.ok) showStatus('✓ Playing playlist');
+                else showStatus('✗ Failed to play playlist', true);
+            } catch (error) { 
+                showStatus('✗ Could not connect to WLED', true); 
+            }
+        }
+
+        // ========== INITIALIZATION ==========
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
+
+        function initializeApp() {
+            console.log('LED Pixel Editor - ESP32 Single File Version');
+            loadSettings();
+            
+            // Set initial grid display values
+            const totalLEDs = gridWidth * gridHeight;
+            
+            document.getElementById('gridWidth').value = gridWidth;
+            document.getElementById('gridHeight').value = gridHeight;
+            document.getElementById('gridWidthDisplay').textContent = gridWidth;
+            document.getElementById('gridHeightDisplay').textContent = gridHeight;
+            document.getElementById('totalLEDs').value = totalLEDs;
+            document.getElementById('layoutDisplay').textContent = getLayoutDescription();
+            
+            createGrid();
+            renderMainColors();
+            renderRecentColors();
+            
+            const currentColorDisplay = document.getElementById('currentColorDisplay');
+            if (currentColorDisplay) {
+                currentColorDisplay.style.backgroundColor = color;
+                document.getElementById('hexInput').value = color.toUpperCase();
+            }
+            
+            // Global event listeners (added once)
+            document.addEventListener('mouseup', () => { isDrawing = false; });
+            document.addEventListener('touchend', () => { isDrawing = false; });
+            document.addEventListener('click', () => {
+                if (activeColorColumn !== null) {
+                    hideAllShades();
+                }
+            });
+            
+            setTimeout(() => {
+                if (wledIP) fetchWLEDPresets();
+            }, 500);
+        }
+    </script>
+</body>
+</html>
